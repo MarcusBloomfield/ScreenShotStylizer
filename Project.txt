@@ -1,0 +1,55 @@
+# ScreenShot Stylizer
+
+## Project Overview
+- AI-powered image stylizer web application
+- Upload screenshots or images and stylize them using AI
+- Conversational interface for requesting specific styles
+- Image history to track transformations
+- Modern responsive UI design
+
+## Architecture
+- Frontend: React with TypeScript 
+- Backend: Node.js with Express
+- AI Integration: OpenAI API (DALL-E 3 and GPT-4 Vision)
+- Data Storage: Local file system for image storage
+
+## Key Features
+- Drag and drop image upload
+- Chat interface for style requests
+- Image transformation with AI (Confirmed: Edits uploaded images based on text prompts using OpenAI)
+- History navigation
+- Original/stylized image comparison
+- Image download functionality
+- Logo generation capability
+
+## Component Structure
+- App.tsx: Main application container
+- ImageUploader.tsx: Handles image uploads via drag & drop
+- ChatFeed.tsx: Manages the conversation interface
+- ImageDisplay.tsx: Shows images and provides navigation controls
+- useImageStyler.ts: Custom hook for image processing logic
+- imageService.ts: Service for API communication
+- Message.ts: Data models for messages and image versions
+
+## Backend API
+- POST /api/images/upload: Upload a new image
+- POST /api/images/stylize: Process an image with AI
+- POST /api/images/generate-logo: Create a logo with AI
+
+## Styling
+- Modern UI with card-based design
+- Responsive layout for all screen sizes
+- Animation for smooth transitions
+- Loading indicators for all asynchronous operations
+
+## Future Enhancements
+- User accounts and authentication
+- Cloud storage integration
+- Additional style presets
+- Batch processing
+- Image metadata and tagging
+
+## Dev Commands
+- npm run dev: Start development servers
+- npm run build: Build for production
+- npm run setup-backend: Configure backend environment 

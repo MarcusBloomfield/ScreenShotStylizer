@@ -1,0 +1,39 @@
+# ScreenShot Stylizer - Long Term Memory
+
+## Project Description
+ScreenShot Stylizer is an AI-powered web application that allows users to upload images and stylize them using OpenAI's GPT-4 Vision and DALL-E models. The application features a chat interface for describing style preferences and provides image history navigation.
+
+## Key Components
+
+### Frontend Components
+- ImageUploader.tsx: Handles drag and drop image uploads
+- ChatFeed.tsx: Manages the chat conversation interface
+- ImageDisplay.tsx: Displays images and provides navigation controls
+
+### Backend Components
+- imageController.ts: Handles image upload and processing requests
+- openaiService.ts: Integrates with OpenAI API for image stylization
+- imageRoutes.ts: Defines API endpoints for image operations
+
+### State Management
+- useImageStyler.ts: Custom hook that manages application state and operations
+
+## Feature Notes
+- Image uploads are limited to 10MB maximum
+- Supported image formats include PNG, JPG, JPEG, GIF, and WEBP
+- Images are processed through OpenAI's DALL-E 3 model
+- Conversations are handled through OpenAI's GPT-4 Vision model
+- Image transformations are saved in the backend/uploads/images directory
+- Previous image versions can be navigated with the UI controls
+
+## Development Workflow
+1. Frontend runs on default webpack port (8080)
+2. Backend runs on port 3001
+3. Both can be started concurrently with "npm run dev"
+4. OpenAI API key is required and stored in backend/.env
+
+## Important Locations
+- Uploaded images: backend/uploads/images
+- Temporary files: backend/uploads/temp
+- OpenAI service: backend/src/services/openaiService.ts
+- Image endpoints: backend/src/routes/imageRoutes.ts 

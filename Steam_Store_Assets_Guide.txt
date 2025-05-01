@@ -1,0 +1,150 @@
+# STEAM STORE GRAPHICAL ASSETS REQUIREMENTS
+## Based on: https://partner.steamgames.com/doc/store/assets/standard#1
+
+This document summarizes the required and optional graphical assets for your Steam store page.
+
+## IMPORTANT GENERAL RULES:
+- Do not include quotes or other strings of text beyond the title of your game
+- Logos should be clearly legible against backgrounds
+- For temporary promotions (updates, events), use Artwork Overrides feature
+- Follow all Steam guidelines for what can/cannot be in asset images
+
+## ASSET TYPES:
+
+### 1. HEADER CAPSULE (REQUIRED)
+Size: 920px x 430px
+Usage: Top of store page, 'Recommended For You' section, Big Picture mode, Daily Deals
+Design:
+- Use key art and logo from marketing
+- Should communicate something important about the game
+- Graphically-centric, giving a sense of gameplay
+- Logo must be easily legible
+
+### 2. SMALL CAPSULE (REQUIRED)
+Size: 462px x 174px (smaller sizes of 120x45 and 184x69 auto-generated)
+Usage: Search results, top-sellers, new releases lists
+Design:
+- Focus on making logo CLEARLY LEGIBLE even at smallest size
+- Logo should nearly fill the small capsule
+- Art does not need to match other capsules
+
+### 3. MAIN CAPSULE (REQUIRED)
+Size: 1232px x 706px
+Usage: Top of Steam store home page in Main Capsule carousel
+Design:
+- Use key art and logo from marketing
+- Should tell customers something important about the game
+- Graphically-centric, giving sense of gameplay
+- Logo must be easily legible
+
+### 4. VERTICAL CAPSULE (REQUIRED)
+Size: 748px x 896px
+Usage: Top of front page during seasonal sales and other sale pages
+Design:
+- Use key art and logo from marketing
+- Should tell customers something important about the game
+- Graphically-centric, giving sense of gameplay
+- Logo must be easily legible
+
+### 5. SCREENSHOTS (REQUIRED)
+Size: Minimum 1920x1080, 16:9 aspect ratio
+Quantity: Minimum 5 screenshots
+Usage: Store page and other promotional locations
+Design:
+- MUST SHOW ACTUAL GAMEPLAY, not concept art or cinematics
+- Avoid marketing text, awards, written descriptions in screenshots
+- High-res, widescreen format recommended
+- Can upload localized versions for different languages
+- Mark at least 4 screenshots as "suitable for all ages" if appropriate
+
+### 6. PAGE BACKGROUND (OPTIONAL)
+Size: 1438px x 810px
+Usage: Background of your store page
+Design:
+- Should be ambient and not compete with content on the page
+- A template will be automatically applied
+- If not uploaded, Steam will use the last screenshot
+
+### 7. BUNDLE ASSETS
+Bundle Header:
+Size: 707px x 232px
+Usage: Top of bundle detail page
+Design:
+- Focus on product branding
+- Use same artwork as retail/marketing
+- Logo must be clearly legible
+
+## TEMPLATES
+Templates for all assets can be downloaded from:
+https://www.dropbox.com/scl/fo/cvkwbosmrimklcl9h0qko/AF5IPErKP-mQM%5F3YO1Dw2lA?rlkey=b3ad0izykq367g4luasrinw9z&dl=0 
+
+# STEAM LIBRARY ASSETS GUIDE
+## Based on: https://partner.steamgames.com/doc/store/assets/libraryassets
+
+This document summarizes the required graphical assets for your game in the Steam library.
+
+## TEMPLATES
+
+Templates for sizing and text placements are available here:
+- [Download templates](https://www.dropbox.com/scl/fo/cvkwbosmrimklcl9h0qko/AF5IPErKP-mQM%5F3YO1Dw2lA?rlkey=b3ad0izykq367g4luasrinw9z&dl=0)
+- Contents: Library Capsule, Library Header, Hero Graphic, Logo
+
+## VISIBILITY NOTE
+
+Library Assets are only visible for applications that have a published store page on Steam. If your store page is not published, Library Assets will not be visible in the Steam client.
+
+## REQUIRED ASSETS
+
+### 1. LIBRARY CAPSULE (Required)
+- **Size:** 600px x 900px (system auto-generates 300px x 450px version)
+- **Usage:** Primarily used in library overview and collection views
+- **Design Requirements:**
+  - Graphically-centric image giving users a sense of the experience
+  - Use key art and logo from retail boxes or marketing
+  - Include game logo that is easily legible against the background
+  - Do NOT include quotes or text beyond the title of your game
+
+### 2. LIBRARY HEADER (Required)
+- **Size:** 920px x 430px
+- **Usage:** Appears in various places in the Steam Client Library, including Recent Games
+- **Design Requirements:**
+  - Focus on product branding
+  - Use similar artwork to Library Capsule or Store Header Capsule
+  - Make sure logo is clearly legible
+  - Do NOT include quotes or text beyond the title of your game
+
+### 3. LIBRARY HERO (Required)
+- **Size:** 3840px x 1240px (system auto-generates 1920px x 620px version)
+- **Usage:** Appears at the top of a user's library details page
+- **Design Requirements:**
+  - Visually rich, easily recognizable image
+  - Use key art from retail boxes or marketing
+  - Cannot include ANY text
+  - Central "safe area" of 860px x 380px remains uncropped when Steam client window is resized
+  - Critical content should be within the safe area
+  - Artwork should extend across the entire template
+
+### 4. LIBRARY LOGO (Required)
+- **Size:** Either 1280px wide and/or 720px tall (system auto-generates half-size version)
+- **Usage:** Appears on top of hero graphic on library details page
+- **Design Requirements:**
+  - Contains ONLY your game's logotype (title in special font/lettering)
+  - Optionally a logomark (icon alongside game title)
+  - Must have transparent background (PNG format)
+  - No words other than your game's title
+  - After upload, you'll need to select logo position: left bottom corner, centered top, centered middle, or centered bottom
+
+## NOTE ON HERO AND LOGO DISPLAY
+
+The hero graphic and logo are layered and move independently when the page is scrolled, creating a subtle parallax effect. Consider how the product logo will be placed on top of the hero image to ensure visibility and legibility.
+
+If hero graphic and logo are not uploaded, the hero area will display a screenshot from the store with the application name text overlaid in the bottom left corner.
+
+## IMPORTANT RESTRICTIONS
+
+Please refer to the Graphical Asset Rules documentation for important rules on what can and cannot be included in your graphical assets. Key restrictions include:
+- No review scores
+- No award names, symbols, or logos
+- No discount marketing copy
+- No promotional text for other products
+- No miscellaneous text beyond game title and subtitle 

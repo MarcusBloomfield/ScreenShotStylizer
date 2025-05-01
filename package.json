@@ -1,0 +1,55 @@
+{
+  "name": "screenshot-stylizer",
+  "version": "1.0.0",
+  "description": "AI-powered image stylizer using OpenAI",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack serve --mode development --open",
+    "build": "webpack --mode production",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "setup-backend": "node setup-backend.js",
+    "backend": "cd backend && npm run dev",
+    "dev": "concurrently \"npm start\" \"npm run backend\""
+  },
+  "keywords": [
+    "image",
+    "stylizer",
+    "openai",
+    "ai",
+    "react"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "axios": "^1.9.0",
+    "openai": "^4.96.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-dropzone": "^14.3.8",
+    "typescript": "^5.8.3",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-react": "^7.26.3",
+    "@babel/preset-typescript": "^7.27.0",
+    "@types/uuid": "^10.0.0",
+    "babel-loader": "^10.0.0",
+    "buffer": "^6.0.3",
+    "concurrently": "^9.1.2",
+    "css-loader": "^7.1.2",
+    "file-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.6.3",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
+    "url": "^0.11.3",
+    "webpack": "^5.99.7",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.1"
+  }
+}
