@@ -15,6 +15,11 @@ interface ResizeResponse {
   imageUrl: string; // URL of the newly resized image
 }
 
+interface FillEmptySpaceResponse {
+  imageBase64: string; 
+  explanation: string;
+}
+
 export const uploadImageService = async (file: File): Promise<{ imageId: string }> => {
   const formData = new FormData();
   formData.append('image', file);
@@ -101,4 +106,20 @@ export const resizeImageService = async (
   });
   console.log('Received resized image URL:', response.data.imageUrl);
   return response.data;
+};
+
+export const fillEmptySpaceService = async (
+  imageUrl: string, // URL or base64 of the image 
+  fillPrompt: string
+): Promise<FillEmptySpaceResponse> => {
+  console.log(`Calling fill empty space service for image with prompt: "${fillPrompt}"`);
+  const response = await axios.post<FillEmptySpaceResponse>(`${API_URL}/openai/fill-empty-space`, {
+    imageData: imageUrl,
+    fillPrompt
+  });
+  console.log('Received filled image');
+  return {
+    imageBase64: response.data.imageBase64,
+    explanation: response.data.explanation
+  };
 }; 

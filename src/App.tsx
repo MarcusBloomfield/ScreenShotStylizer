@@ -27,7 +27,8 @@ const App: React.FC = () => {
       viewPreviousImage, 
       viewNextImage, 
       updateImageDimensions,
-      resizeCurrentImage
+      resizeCurrentImage,
+      fillEmptySpace
     }
   ] = useImageStyler();
 
@@ -158,6 +159,7 @@ const App: React.FC = () => {
                 selectedHeight={selectedHeight}
                 onDimensionsChange={updateImageDimensions}
                 onResizeNow={resizeCurrentImage}
+                onFillEmptySpace={fillEmptySpace}
                 isLoading={isLoading}
               />
             </div>

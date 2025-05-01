@@ -110,15 +110,18 @@ const resizeAndSaveImage = async (
   const fileName = `${imageId}.png`;
   const filePath = path.join(imagesDir, fileName);
 
-  console.log(`Helper - Resizing image to ${targetWidth}x${targetHeight} and saving to: ${filePath}`);
+  console.log(`Helper - Resizing image to ${targetWidth}x${targetHeight} using 'cover' and saving to: ${filePath}`);
   
   try {
     const resizedBuffer = await sharp(imageBuffer)
       .resize(targetWidth, targetHeight, {
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-        fit: 'inside'
+        fit: 'contain', // Fill dimensions, preserve aspect ratio, crop excess
+        background: { r: 255, g: 255, b: 255, alpha: 0 }, // Add white background
+        position: 'center', // Center the image
+        kernel: 'lanczos3' // Use Lanczos3 for better quality
+        
       })
-      .png()
+      .png() // Ensure output is PNG
       .toBuffer();
 
     fs.writeFileSync(filePath, resizedBuffer);

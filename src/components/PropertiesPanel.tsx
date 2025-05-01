@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../styles/PropertiesPanel.css';
 
 // Define the size presets based on Steam documentation
@@ -22,6 +22,7 @@ interface PropertiesPanelProps {
   selectedHeight: number | null;
   onDimensionsChange: (width: number | null, height: number | null) => void;
   onResizeNow: () => void;
+  onFillEmptySpace?: (fillPrompt: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -30,8 +31,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   selectedHeight, 
   onDimensionsChange, 
   onResizeNow,
+  onFillEmptySpace,
   isLoading 
 }) => {
+  const [fillPrompt, setFillPrompt] = useState<string>('');
 
   const handleSizeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = event.target.value;
@@ -44,6 +47,12 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
       if (!isNaN(width) && !isNaN(height)) {
         onDimensionsChange(width, height);
       }
+    }
+  };
+
+  const handleFillEmptySpace = () => {
+    if (onFillEmptySpace && fillPrompt.trim()) {
+      onFillEmptySpace(fillPrompt);
     }
   };
 
@@ -88,6 +97,34 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         {isLoading ? 'Resizing...' : 'Resize Current Image'}
       </button>
 
+      {/* Fill Empty Space Section */}
+      <div className="property-section">
+        <h3>Fill Empty Space</h3>
+        <p className="property-description">
+          Fill transparent areas in the image while preserving existing content.
+        </p>
+        
+        <div className="property-item">
+          <label htmlFor="fill-prompt">Fill Prompt:</label>
+          <input
+            type="text"
+            id="fill-prompt"
+            value={fillPrompt}
+            onChange={(e) => setFillPrompt(e.target.value)}
+            placeholder="Describe what to fill with..."
+            disabled={isLoading}
+          />
+        </div>
+        
+        <button 
+          className="fill-empty-space-button"
+          onClick={handleFillEmptySpace}
+          disabled={isLoading || !fillPrompt.trim() || !onFillEmptySpace}
+          title="Fill transparent areas in the current image"
+        >
+          {isLoading ? 'Filling...' : 'Fill Empty Space'}
+        </button>
+      </div>
     </div>
   );
 };

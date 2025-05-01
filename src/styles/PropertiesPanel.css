@@ -30,6 +30,7 @@
 }
 
 .property-item select,
+.property-item input,
 .property-item span {
   padding: 8px;
   border: 1px solid var(--border-color); /* Use variable */
@@ -39,11 +40,13 @@
   color: var(--text-color); /* Use variable for text */
 }
 
-.property-item select {
+.property-item select,
+.property-item input {
   cursor: pointer;
 }
 
-.property-item select:disabled {
+.property-item select:disabled,
+.property-item input:disabled {
   background-color: var(--gray-light); /* Use variable */
   color: var(--gray-dark); /* Use variable */
   cursor: not-allowed;
@@ -55,6 +58,16 @@
   min-height: 35px; /* Match select height */
   display: flex;
   align-items: center;
+}
+
+.property-section {
+  margin-top: 20px;
+}
+
+.property-description {
+  font-size: 0.85em;
+  color: var(--gray-dark);
+  margin-bottom: 10px;
 }
 
 /* Resize Button Styling */
@@ -76,6 +89,30 @@
 }
 
 .resize-button:disabled {
+  background-color: var(--gray-medium); /* Use variable */
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Fill Empty Space Button Styling */
+.fill-empty-space-button {
+  background-color: var(--secondary-color); /* Use variable */
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+  margin-top: 10px;
+}
+
+.fill-empty-space-button:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--secondary-color) 85%, black); /* Darken variable */
+}
+
+.fill-empty-space-button:disabled {
   background-color: var(--gray-medium); /* Use variable */
   cursor: not-allowed;
   opacity: 0.7;

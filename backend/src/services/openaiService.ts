@@ -5,8 +5,7 @@ import path from 'path';
 import { UploadedFile } from 'express-fileupload';
 import axios from 'axios';
 import mime from 'mime-types';
-// No longer need sharp for this approach
-// import sharp from 'sharp';
+import sharp from 'sharp';
 
 // Load environment variables
 dotenv.config();
@@ -106,7 +105,8 @@ export const stylizeImageWithAI = async (
     const imageResponse = await openai.images.edit({
       model: "gpt-image-1",
       image: imageForApi,
-      prompt: `Transform this image in the style of ${stylePrompt}. Make sure it is not stretched or distorted.`
+      prompt: `Transform this image in the style of ${stylePrompt}. Make sure it is not stretched or distorted.`,
+      size: "1024x1024" // Ensure output is 1024x1024
     });
 
     console.log('Received response from GPT Image edit API');
@@ -344,4 +344,122 @@ export const generateImagePromptWithAI = async (
     console.error('Error in generateImagePromptWithAI:', error);
     throw error;
   }
-}; 
+};
+
+/**
+ * Fill empty/transparent areas in an image while preserving the original content
+ */
+export const fillEmptySpaceWithAI = async (
+  imageSource: UploadedFile | string,
+  fillPrompt: string
+): Promise<ImageResponse> => {
+  try {
+    console.log(`Filling empty space in image with prompt: "${fillPrompt}"`);
+
+    // Prepare the image file for the API
+    console.log('Preparing image for GPT Image edit with mask...');
+    const imageForApi = await imageSourceToFile(imageSource);
+
+    // Generate a mask from the image where transparent areas will be filled
+    // For this to work, the image must have transparency
+    const maskForApi = await generateMaskFromImage(imageSource);
+    
+    if (!maskForApi) {
+      throw new Error('Could not generate mask from image. The image may not have transparent areas.');
+    }
+
+    // Call the GPT Image edit API with the image and mask
+    // Always set size to 1024x1024 as requested
+    console.log('Calling GPT Image edit API with mask and prompt:', fillPrompt);
+    const imageResponse = await openai.images.edit({
+      model: "gpt-image-1",
+      image: imageForApi,
+      mask: maskForApi,
+      size: "1024x1024", // Fixed square output
+      prompt: `Fill the transparent areas with ${fillPrompt}. Keep all existing content intact.`
+    });
+
+    console.log('Received response from GPT Image edit API');
+    
+    // Check if we have a valid response with data
+    if (!imageResponse.data || imageResponse.data.length === 0 || !imageResponse.data[0].b64_json) {
+      console.error('Invalid response structure from GPT Image edit:', imageResponse);
+      throw new Error('No image data received from GPT Image edit');
+    }
+
+    const generatedImageBase64 = imageResponse.data[0].b64_json;
+
+    console.log('Successfully received edited image from GPT Image (1024x1024)');
+    return {
+      imageBase64: `data:image/png;base64,${generatedImageBase64}`,
+      explanation: `Empty space filled using GPT Image with "${fillPrompt}", resulting in a 1024x1024 square image.`
+    };
+
+  } catch (error) {
+    console.error('Error in fillEmptySpaceWithAI:', error);
+    throw error;
+  }
+};
+
+/**
+ * Helper function to generate a mask from an image where transparent areas will be filled
+ * For OpenAI's inpainting: transparent areas in the mask (alpha=0) will be edited/filled,
+ * while opaque areas (alpha=255) will be preserved
+ */
+async function generateMaskFromImage(imageSource: UploadedFile | string): Promise<any> {
+  let tempFilePath: string | null = null;
+  
+  try {
+    console.log('Generating mask from image for inpainting...');
+    let inputBuffer: Buffer;
+    
+    // Get the image data as a buffer
+    if (typeof imageSource === 'string') {
+      if (imageSource.startsWith('data:image')) {
+        // Base64 data URL
+        const base64Data = imageSource.split(',')[1];
+        inputBuffer = Buffer.from(base64Data, 'base64');
+      } else if (imageSource.startsWith('http')) {
+        // URL
+        const response = await axios.get(imageSource, { responseType: 'arraybuffer' });
+        inputBuffer = Buffer.from(response.data);
+      } else {
+        throw new Error('Unsupported image source format for mask generation');
+      }
+    } else {
+      // Uploaded file
+      inputBuffer = fs.readFileSync(imageSource.tempFilePath);
+    }
+    
+    // Create a temporary file for the mask
+    const filename = `mask_${Date.now()}.png`;
+    const tempPath = path.join(__dirname, '../temp', filename);
+    fs.mkdirSync(path.join(__dirname, '../temp'), { recursive: true });
+    
+    // We're directly using the original image as the mask
+    // For OpenAI's inpainting, transparent areas in the mask will be filled
+    // and opaque areas will be preserved
+    fs.writeFileSync(tempPath, inputBuffer);
+    
+    const stream = fs.createReadStream(tempPath);
+    const file = await toFile(stream, filename, { type: "image/png" });
+    
+    // Set to clean up temp file after function returns
+    tempFilePath = tempPath;
+    
+    return file;
+  } catch (error) {
+    console.error('Error generating mask from image:', error);
+    throw error;
+  } finally {
+    // Clean up any temporary files
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      try {
+        fs.unlinkSync(tempFilePath);
+        console.log(`Cleaned up temporary mask file: ${tempFilePath}`);
+      } catch (err) {
+        console.warn(`Failed to clean up temporary mask file: ${tempFilePath}`, err);
+      }
+    }
+  }
+} 

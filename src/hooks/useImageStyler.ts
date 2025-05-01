@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Message, ImageVersion } from '../models/Message';
-import { uploadImageService, stylizeImageService, resizeImageService } from '../services/imageService';
+import { uploadImageService, stylizeImageService, resizeImageService, fillEmptySpaceService } from '../services/imageService';
 
 // Define the backend URL (ideally from an environment variable)
 const BACKEND_URL = 'http://localhost:3001';
@@ -33,6 +33,7 @@ interface ImageStylerActions {
   viewNextImage: () => void;
   updateImageDimensions: (width: number | null, height: number | null) => void;
   resizeCurrentImage: () => Promise<void>;
+  fillEmptySpace: (fillPrompt: string) => Promise<void>;
 }
 
 export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
@@ -413,6 +414,70 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
     }
   }, [state.currentImageVersion, state.selectedWidth, state.selectedHeight]);
 
+  // Add after other action functions
+  const fillEmptySpace = useCallback(async (fillPrompt: string) => {
+    if (!state.currentImageVersion) return;
+    
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    
+    try {
+      // Get the current image
+      const imageSource = state.currentImageVersion.url;
+      
+      // Process with AI to fill empty space
+      const result = await fillEmptySpaceService(imageSource, fillPrompt);
+      
+      // Create a new image version from the result
+      const newImageVersion: ImageVersion = {
+        id: uuidv4(),
+        url: result.imageBase64, // Direct base64 data URL
+        timestamp: new Date(),
+        prompt: `Fill empty space: ${fillPrompt}`
+      };
+      
+      // Create assistant response message
+      const assistantMessage: Message = {
+        id: uuidv4(),
+        content: result.explanation || "I've filled the empty space in your image based on your request.",
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+      
+      // Update state with new data
+      setState(prev => {
+        // Append new version to the end of the full history
+        const newHistory = [...prev.imageHistory, newImageVersion];
+        return {
+          ...prev,
+          currentImageVersion: newImageVersion,
+          imageHistory: newHistory,
+          currentImageIndex: newHistory.length - 1, // Point to the newest image
+          messageHistory: [...prev.messageHistory, assistantMessage],
+          isLoading: false
+        };
+      });
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to fill empty space'
+      }));
+      
+      // Add error message
+      const errorMessage: Message = {
+        id: uuidv4(),
+        content: "Sorry, I encountered an error filling the empty space. The image may not have any transparent areas.",
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+      
+      setState(prev => ({
+        ...prev,
+        messageHistory: [...prev.messageHistory, errorMessage]
+      }));
+    }
+  }, [state.currentImageVersion]);
+
   return [
     {
       uploadedImageInfo: state.uploadedImageInfo,
@@ -433,7 +498,8 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
       viewPreviousImage,
       viewNextImage,
       updateImageDimensions,
-      resizeCurrentImage
+      resizeCurrentImage,
+      fillEmptySpace
     }
   ];
 }; 
