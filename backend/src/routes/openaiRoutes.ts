@@ -1,6 +1,10 @@
 import express from 'express';
+import { generateImagePromptController } from '../controllers/openaiController';
 
 const router = express.Router();
+
+// Route to generate a detailed image prompt
+router.post('/generate-prompt', generateImagePromptController);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

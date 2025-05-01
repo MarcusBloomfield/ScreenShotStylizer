@@ -4,6 +4,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { UploadedFile } from 'express-fileupload';
 import axios from 'axios';
+import sharp from 'sharp';
 import { stylizeImageWithAI, generateLogoWithAI } from '../services/openaiService';
 
 // Define absolute paths for directories - fix the double backend path issue
@@ -98,78 +99,131 @@ export const uploadImage = async (req: Request, res: Response) => {
 };
 
 /**
- * Process and save image from OpenAI (either URL or base64)
+ * Helper function to resize and save an image buffer
  */
-const saveImageFromResult = async (imageData: string): Promise<string> => {
+const resizeAndSaveImage = async (
+  imageBuffer: Buffer,
+  targetWidth: number,
+  targetHeight: number
+): Promise<string> => {
   const imageId = uuidv4();
   const fileName = `${imageId}.png`;
   const filePath = path.join(imagesDir, fileName);
 
-  console.log('ImageController - Saving processed image to:', filePath);
-
+  console.log(`Helper - Resizing image to ${targetWidth}x${targetHeight} and saving to: ${filePath}`);
+  
   try {
-    // Check if it's a URL or base64 data
-    if (imageData.startsWith('http')) {
-      // It's a URL, download the image
-      console.log('ImageController - Downloading image from URL:', imageData);
-      const response = await axios.get(imageData, { responseType: 'arraybuffer' });
-      fs.writeFileSync(filePath, Buffer.from(response.data), 'binary');
+    const resizedBuffer = await sharp(imageBuffer)
+      .resize(targetWidth, targetHeight, {
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+        fit: 'inside'
+      })
+      .png()
+      .toBuffer();
+
+    fs.writeFileSync(filePath, resizedBuffer);
+
+    if (fs.existsSync(filePath)) {
+      console.log('Helper - File saved successfully at:', filePath);
     } else {
-      // It's a base64 string, remove the data URL prefix if present
-      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-      fs.writeFileSync(filePath, base64Data, { encoding: 'base64' });
+      console.error('Helper - File was not saved at:', filePath);
+      throw new Error('Failed to save resized image');
     }
 
-    // Verify the file was saved
-    if (fs.existsSync(filePath)) {
-      console.log('ImageController - File saved successfully at:', filePath);
-      const stats = fs.statSync(filePath);
-      console.log('ImageController - File size:', stats.size, 'bytes');
+    return `/uploads/images/${fileName}`; // Return relative URL
+  } catch (error) {
+     console.error('Helper - Error resizing/saving image:', error);
+     throw error;
+  }
+};
+
+/**
+ * Process and save image from OpenAI (handles base64 or URL), potentially resizing.
+ */
+const saveImageFromResult = async (
+  imageData: string, 
+  targetWidth?: number, 
+  targetHeight?: number
+): Promise<string> => {
+  const imageId = uuidv4();
+  const fileName = `${imageId}.png`;
+  const filePath = path.join(imagesDir, fileName);
+
+  console.log(`ImageController:saveImageFromResult - Saving processed image to: ${filePath} (Target size: ${targetWidth}x${targetHeight})`);
+
+  try {
+    let imageBuffer: Buffer;
+
+    if (imageData.startsWith('http')) {
+      const response = await axios.get(imageData, { responseType: 'arraybuffer' });
+      imageBuffer = Buffer.from(response.data);
     } else {
-      console.error('ImageController - File was not saved at:', filePath);
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+      imageBuffer = Buffer.from(base64Data, 'base64');
+    }
+
+    if (targetWidth && targetHeight) {
+      console.log(`ImageController:saveImageFromResult - Resizing image to ${targetWidth}x${targetHeight}`);
+      imageBuffer = await sharp(imageBuffer)
+        .resize(targetWidth, targetHeight, {
+          fit: 'fill'
+        })
+        .png() 
+        .toBuffer();
+    } else {
+      imageBuffer = await sharp(imageBuffer).png().toBuffer();
+    }
+
+    fs.writeFileSync(filePath, imageBuffer);
+
+    if (fs.existsSync(filePath)) {
+      console.log('ImageController:saveImageFromResult - File saved successfully at:', filePath);
+    } else {
+      console.error('ImageController:saveImageFromResult - File was not saved at:', filePath);
     }
     
     return `/uploads/images/${fileName}`;
   } catch (error) {
-    console.error('ImageController - Error saving image:', error);
+    console.error('ImageController:saveImageFromResult - Error saving/resizing image:', error);
     throw error;
   }
 };
 
 /**
- * Stylize an uploaded image with OpenAI
+ * Stylize an image with OpenAI
  */
 export const stylizeImage = async (req: Request, res: Response) => {
   try {
-    // Check if request includes prompt
-    if (!req.body.prompt) {
+    const { prompt, imageData, targetWidth, targetHeight } = req.body;
+    const imageFile = (req.files && req.files.image) ? req.files.image as UploadedFile : null;
+
+    // Validate prompt
+    if (!prompt) {
       return res.status(400).json({ message: 'No prompt was provided' });
     }
 
-    const prompt = req.body.prompt;
-    const previousVersionId = req.body.previousVersionId || null;
+    let imageSource: UploadedFile | string;
     
-    let imageSource;
-    
-    // Option 1: Image provided as file upload
-    if (req.files && req.files.image) {
-      console.log('ImageController - Using uploaded file');
-      imageSource = req.files.image as UploadedFile;
-    } 
-    // Option 2: Image provided as URL or base64 in request body
-    else if (req.body.imageData) {
-      console.log('ImageController - Using provided image data from body');
-      imageSource = req.body.imageData;
-    } 
-    else {
-      return res.status(400).json({ message: 'No image was provided (neither as file upload nor as URL/base64)' });
+    // Determine image source
+    if (imageFile) {
+      console.log('ImageController - Using uploaded file for stylize');
+      imageSource = imageFile;
+    } else if (imageData) {
+      console.log('ImageController - Using provided image data from body for stylize');
+      imageSource = imageData;
+    } else {
+      return res.status(400).json({ message: 'No image source provided (file or data)' });
     }
 
-    // Process the image with OpenAI
-    const result = await stylizeImageWithAI(imageSource, prompt, previousVersionId);
+    // Convert target dimensions to numbers if they exist
+    const width = targetWidth ? parseInt(targetWidth as string, 10) : undefined;
+    const height = targetHeight ? parseInt(targetHeight as string, 10) : undefined;
+
+    // Process the image with OpenAI (this returns base64)
+    const result = await stylizeImageWithAI(imageSource, prompt);
     
-    // Save the resulting image (handles both URL and base64)
-    const imageUrl = await saveImageFromResult(result.imageBase64);
+    // Save the resulting image, resizing if dimensions were provided
+    const imageUrl = await saveImageFromResult(result.imageBase64, width, height);
 
     console.log('ImageController - Image URL to return:', imageUrl);
 
@@ -217,6 +271,56 @@ export const generateLogo = async (req: Request, res: Response) => {
     console.error('Error generating logo:', error);
     res.status(500).json({ 
       message: 'Error generating logo',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+/**
+ * Resize an existing image provided via URL or base64
+ */
+export const resizeImageController = async (req: Request, res: Response) => {
+  try {
+    const { imageData, targetWidth, targetHeight } = req.body;
+
+    // Validate input
+    if (!imageData || !targetWidth || !targetHeight) {
+      return res.status(400).json({ message: 'Missing imageData, targetWidth, or targetHeight' });
+    }
+    if (isNaN(parseInt(targetWidth, 10)) || isNaN(parseInt(targetHeight, 10))) {
+       return res.status(400).json({ message: 'Invalid targetWidth or targetHeight' });
+    }
+
+    const width = parseInt(targetWidth, 10);
+    const height = parseInt(targetHeight, 10);
+
+    console.log(`ResizeController - Received request to resize to ${width}x${height}`);
+
+    // Get image buffer from source
+    let sourceBuffer: Buffer;
+    if (imageData.startsWith('http')) {
+      console.log('ResizeController - Downloading image from URL...');
+      const response = await axios.get(imageData, { responseType: 'arraybuffer' });
+      sourceBuffer = Buffer.from(response.data);
+    } else if (imageData.startsWith('data:image')) {
+      console.log('ResizeController - Decoding base64 image...');
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+      sourceBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ message: 'Invalid imageData format (must be URL or base64 data URI)' });
+    }
+
+    // Resize and save using the helper
+    const resizedImageUrl = await resizeAndSaveImage(sourceBuffer, width, height);
+
+    console.log('ResizeController - Resized image URL to return:', resizedImageUrl);
+
+    res.status(200).json({ imageUrl: resizedImageUrl });
+
+  } catch (error) {
+    console.error('Error in resizeImageController:', error);
+    res.status(500).json({ 
+      message: 'Error resizing image',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }

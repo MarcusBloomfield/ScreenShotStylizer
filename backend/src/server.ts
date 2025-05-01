@@ -53,10 +53,13 @@ console.log('Images directory path:', imagesDir);
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// Increase payload size limit for JSON requests (e.g., base64 images)
+app.use(express.json({ limit: '50mb' })); 
+// Increase payload size limit for URL-encoded requests (optional but good practice)
+app.use(express.urlencoded({ limit: '50mb', extended: true })); 
 app.use(morgan('dev'));
 app.use(fileUpload({
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max file size
+  limits: { fileSize: 10 * 1024 * 1024 }, // Keep file upload limit separate (10MB)
   useTempFiles: true,
   tempFileDir: tempDir,
   debug: process.env.NODE_ENV !== 'production'

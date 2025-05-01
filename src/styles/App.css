@@ -17,6 +17,23 @@
   --header-gradient: linear-gradient(135deg, #3498db, #2574a9);
 }
 
+/* Dark Mode Theme Variables */
+:root.dark-mode {
+  --primary-color: #8a7ff0; /* Lighter purple */
+  --primary-light: #c0bbfb;
+  --secondary-color: #20c997; /* Slightly brighter green */
+  --text-color: #e9ecef; /* Light gray text */
+  --background-color: #121212; /* Very dark gray */
+  --card-background: #1e1e1e; /* Dark gray for cards */
+  --border-color: #495057; /* Darker border */
+  --error-color: #f07178;
+  --success-color: #66d9ef;
+  --gray-light: #495057;
+  --gray-medium: #6c757d;
+  --gray-dark: #adb5bd;
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -29,20 +46,34 @@ body {
   color: var(--text-color);
   background-color: var(--background-color);
   line-height: 1.6;
+  /* Add smooth transition for theme changes */
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  max-height: 100%;
+  min-width: 100vw;
 }
 
 .app-header {
   padding: 1.5rem;
-  text-align: center;
+  display: flex; /* Use flexbox for alignment */
+  justify-content: space-between; /* Space out title and button */
+  align-items: center; /* Vertically align items */
   border-bottom: 1px solid var(--border-color);
   background-color: var(--card-background);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: var(--transition); /* Add transition */
+}
+
+.header-content {
+  text-align: center;
+  flex-grow: 1; /* Allow text content to take space */
+  /* Adjust margin if needed based on button size */
+  margin-right: -50px; /* Example offset to help center text, adjust as needed */
 }
 
 .app-header h1 {
@@ -54,6 +85,29 @@ body {
 .app-header p {
   color: var(--gray-dark);
   font-size: 1rem;
+}
+
+.theme-toggle-button {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 0.5rem; /* Add padding for easier clicking */
+  border-radius: 50%; /* Make it round */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.theme-toggle-button:hover {
+  background-color: var(--gray-light); /* Subtle hover */
+  color: var(--primary-color); /* Highlight color on hover */
+}
+
+.theme-toggle-button svg {
+  width: 24px;
+  height: 24px;
 }
 
 .app-main {
@@ -71,33 +125,72 @@ body {
   margin: 2rem auto;
 }
 
-.content-container {
+.content-container-wrapper {
   display: flex;
+  flex-direction: column;
   width: 100%;
-  height: calc(100vh - 150px);
-  max-height: 800px;
-  gap: 1.5rem;
+  height: calc(100vh - 120px);
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.new-upload-button-container {
+  margin-bottom: 10px;
+  text-align: right;
+}
+
+.new-upload-button,
+.cancel-upload-button {
+  padding: 8px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+
+.new-upload-button:hover,
+.cancel-upload-button:hover {
+  background-color: #0056b3;
+}
+
+.new-upload-button:disabled,
+.cancel-upload-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.cancel-upload-button {
+  background-color: #6c757d;
+  margin-right: 10px;
+}
+
+.cancel-upload-button:hover {
+  background-color: #5a6268;
+}
+
+.main-content-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 10px;
+  height: 100%;
 }
 
 .chat-container {
   flex: 1;
-  max-width: 500px;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  background-color: var(--card-background);
-  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
 }
 
 .image-container {
-  flex: 1.5;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  background-color: var(--card-background);
-  border: 1px solid var(--border-color);
+  flex: 2;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .error-banner {
@@ -637,4 +730,27 @@ textarea {
 .api-key-note {
   font-size: 0.85rem;
   color: var(--gray-color);
+}
+
+/* Properties Panel styling is in PropertiesPanel.css */
+/* Ensure it gets included */
+.properties-panel {
+  height: 100%;
+  flex-shrink: 0;
+}
+
+/* Apply transitions to elements affected by theme change */
+.app-main,
+.properties-panel, 
+.chat-feed, 
+.chat-input-form, 
+.chat-input-form textarea,
+.message-content,
+.image-controls,
+.navigation-controls button,
+.action-controls button,
+.resize-button
+/* Add other relevant selectors */
+{
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 } 

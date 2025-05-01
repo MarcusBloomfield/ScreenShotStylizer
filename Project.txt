@@ -2,45 +2,71 @@
 
 ## Project Overview
 - AI-powered image stylizer web application
-- Upload screenshots or images and stylize them using AI
-- Conversational interface for requesting specific styles
+- Upload screenshots or images and stylize them using AI and text prompts
+- Conversational interface for requesting specific styles and generating detailed prompts
 - Image history to track transformations
-- Modern responsive UI design
+- Modern responsive UI design with dark mode support
 
 ## Architecture
-- Frontend: React with TypeScript 
-- Backend: Node.js with Express
-- AI Integration: OpenAI API (DALL-E 3 and GPT-4 Vision)
-- Data Storage: Local file system for image storage
+- Frontend: React with TypeScript
+- Backend: Node.js with Express, `express-fileupload`, `sharp`, `axios`, `morgan`
+- AI Integration: OpenAI API (`gpt-image-1` for editing, `gpt-4o-mini` for prompt generation, `gpt-4o` for vision-based description)
+- Data Storage: Local file system (`backend/uploads/images`)
 
-## Key Features
-- Drag and drop image upload
-- Chat interface for style requests
-- Image transformation with AI (Confirmed: Edits uploaded images based on text prompts using OpenAI)
-- History navigation
-- Original/stylized image comparison
-- Image download functionality
-- Logo generation capability
+## Key Features & Implementation Details
+- **Image Upload:** Drag and drop via `ImageUploader.tsx`. Original image added to history.
+- **AI Stylization:**
+    - Uses OpenAI's `images.edit` endpoint with `gpt-image-1`.
+    - Backend service (`openaiService.ts`) handles image conversion (`imageSourceToFile` helper) to `File` object for API.
+    - Accepts image source as `UploadedFile`, URL, or base64.
+    - Triggered via chat input (`ChatFeed.tsx` -> `sendMessage` in `useImageStyler.ts`).
+    - Saves result to `backend/uploads/images`.
+- **AI Prompt Generation:**
+    - Button ('✨') in `ChatFeed.tsx`.
+    - Uses `gpt-4o-mini` vision to analyze the *current* image and user text to generate a detailed prompt.
+    - Backend endpoint: `/api/openai/generate-prompt`.
+- **Image Resizing:**
+    - `PropertiesPanel.tsx` provides Steam asset presets.
+    - Resizing applied *after* AI stylization based on selected dimensions using `sharp` (`fit: 'fill'`).
+    - Separate "Resize Current Image" button uses `/api/images/resize` endpoint for direct resizing without AI.
+- **Image History:**
+    - Managed in `useImageStyler.ts` hook (`imageHistory` array).
+    - `ImageDisplay.tsx` shows current version with Previous/Next navigation.
+    - New versions are always appended.
+- **State Management:**
+    - `useImageStyler.ts` custom hook manages: image history, current version, chat, loading, errors, dimensions.
+- **Backend:**
+    - Express server (`server.ts`) with CORS, JSON parsing (50mb limit), file uploads, logging.
+    - Controllers: `imageController.ts`, `openaiController.ts`.
+    - Routes: `/api/images`, `/api/openai`.
+- **Frontend Services:**
+    - `imageService.ts` using `axios` for backend communication (`uploadImageService`, `stylizeImageService`, `generatePromptService`, `resizeImageService`).
+- **UI:**
+    - Dark Mode toggle in header.
+    - "Compare original" toggle in `ImageDisplay.tsx`.
+    - "Download" and "Regenerate" buttons in `ImageDisplay.tsx`.
+    - "Upload New Image" button to return to uploader.
+- **Documentation:**
+    - Text files created for Steam asset rules.
+    - `.gitignore` updated.
 
-## Component Structure
-- App.tsx: Main application container
-- ImageUploader.tsx: Handles image uploads via drag & drop
-- ChatFeed.tsx: Manages the conversation interface
-- ImageDisplay.tsx: Shows images and provides navigation controls
-- useImageStyler.ts: Custom hook for image processing logic
-- imageService.ts: Service for API communication
-- Message.ts: Data models for messages and image versions
+## API Endpoints
+- POST `/api/images/upload`: Upload a new image.
+- POST `/api/images/stylize`: Stylize the provided image (file, url, or base64) based on a prompt and target dimensions.
+- POST `/api/images/resize`: Resize the provided image (file, url, or base64) to target dimensions.
+- POST `/api/openai/generate-prompt`: Generate a detailed image prompt based on user text and an image.
 
-## Backend API
-- POST /api/images/upload: Upload a new image
-- POST /api/images/stylize: Process an image with AI
-- POST /api/images/generate-logo: Create a logo with AI
+## Deprecated Approaches
+- Initial use of `openai.images.edit` with DALL-E 2 (failed due to parameters/MIME type).
+- "Describe then Generate" approach using GPT-4o Vision + `openai.images.generate` (DALL-E 3).
+- Brief use of `images.generate` with `gpt-image-1` (unsupported `response_format`).
 
 ## Styling
 - Modern UI with card-based design
 - Responsive layout for all screen sizes
 - Animation for smooth transitions
 - Loading indicators for all asynchronous operations
+- CSS Variables for theming (Dark Mode support).
 
 ## Future Enhancements
 - User accounts and authentication
@@ -50,6 +76,7 @@
 - Image metadata and tagging
 
 ## Dev Commands
-- npm run dev: Start development servers
-- npm run build: Build for production
-- npm run setup-backend: Configure backend environment 
+- `npm run dev`: Start frontend (8080) and backend (3001) servers concurrently.
+- `npm run build`: Build for production.
+- `npm run setup-backend`: Configure backend environment.
+- Requires OpenAI API key in `backend/.env`. 

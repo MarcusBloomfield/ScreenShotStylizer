@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Message } from '../models/Message';
+import { Message, ImageVersion } from '../models/Message';
+import { generatePromptService } from '../services/imageService'; // Assuming service is in imageService
 import '../styles/ChatFeed.css';
 
 interface ChatFeedProps {
   messages: Message[];
   onSendMessage: (content: string) => Promise<void>;
   isLoading: boolean;
+  currentImageVersion: ImageVersion | null;
 }
 
-const ChatFeed: React.FC<ChatFeedProps> = ({ messages, onSendMessage, isLoading }) => {
+const ChatFeed: React.FC<ChatFeedProps> = ({ messages, onSendMessage, isLoading, currentImageVersion }) => {
   const [input, setInput] = useState('');
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false); // New state
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -40,6 +43,38 @@ const ChatFeed: React.FC<ChatFeedProps> = ({ messages, onSendMessage, isLoading 
     }
     
     await onSendMessage(message);
+  };
+
+  const handleGeneratePrompt = async () => {
+    if (!input.trim() || isLoading || isGeneratingPrompt) return;
+    
+    const currentInput = input.trim();
+    // Get the URL of the currently displayed image, if available
+    const imageUrl = currentImageVersion?.url;
+    
+    setIsGeneratingPrompt(true);
+    
+    try {
+      // Pass both text and image URL to the service
+      const response = await generatePromptService(currentInput, imageUrl);
+      setInput(response.generatedPrompt); // Update input with generated prompt
+      // Focus and resize textarea after updating input
+      if (inputRef.current) {
+        inputRef.current.focus();
+        // Trigger resize calculation
+        setTimeout(() => {
+          if (inputRef.current) {
+             inputRef.current.style.height = 'auto';
+             inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+          }
+        }, 0);
+      }
+    } catch (error) {
+      console.error('Error generating prompt:', error);
+      // Maybe show an error message to the user?
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
   };
 
   const formatTimestamp = (date: Date) => {
@@ -80,7 +115,7 @@ const ChatFeed: React.FC<ChatFeedProps> = ({ messages, onSendMessage, isLoading 
           onChange={(e) => setInput(e.target.value)}
           placeholder="Describe how you'd like to stylize the image..."
           rows={1}
-          disabled={isLoading}
+          disabled={isLoading || isGeneratingPrompt} // Disable while generating prompt too
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -88,9 +123,24 @@ const ChatFeed: React.FC<ChatFeedProps> = ({ messages, onSendMessage, isLoading 
             }
           }}
         />
+        {/* Generate Prompt Button */}
+        <button 
+          type="button" // Important: Prevent form submission
+          onClick={handleGeneratePrompt}
+          disabled={isLoading || isGeneratingPrompt || !input.trim()}
+          className={`generate-prompt-button ${isGeneratingPrompt ? 'loading' : ''}`}
+          title="Generate a more detailed prompt from your text"
+        >
+          {isGeneratingPrompt ? (
+            <div className="spinner-small"></div>
+          ) : (
+            '✨' // Simple sparkle emoji for the button
+          )}
+        </button>
+        {/* Send Button */}
         <button 
           type="submit" 
-          disabled={isLoading || !input.trim()}
+          disabled={isLoading || isGeneratingPrompt || !input.trim()} // Disable while generating prompt
           className={isLoading ? 'loading' : ''}
         >
           {isLoading ? (

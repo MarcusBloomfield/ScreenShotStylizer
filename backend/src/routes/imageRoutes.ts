@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadImage, stylizeImage, generateLogo } from '../controllers/imageController';
+import { uploadImage, stylizeImage, generateLogo, resizeImageController } from '../controllers/imageController';
 
 const router = express.Router();
 
@@ -23,5 +23,12 @@ router.post('/stylize', stylizeImage);
  * @access  Public
  */
 router.post('/generate-logo', generateLogo);
+
+/**
+ * @route   POST /api/images/resize
+ * @desc    Resize an image
+ * @access  Public
+ */
+router.post('/resize', resizeImageController);
 
 export default router; 

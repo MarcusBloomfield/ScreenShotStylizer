@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Message, ImageVersion } from '../models/Message';
-import { uploadImageService, stylizeImageService } from '../services/imageService';
+import { uploadImageService, stylizeImageService, resizeImageService } from '../services/imageService';
 
 // Define the backend URL (ideally from an environment variable)
 const BACKEND_URL = 'http://localhost:3001';
@@ -20,6 +20,8 @@ interface ImageStylerState {
   messageHistory: Message[];
   isLoading: boolean;
   error: string | null;
+  selectedWidth: number | null;
+  selectedHeight: number | null;
 }
 
 interface ImageStylerActions {
@@ -29,6 +31,8 @@ interface ImageStylerActions {
   regenerateImage: () => Promise<void>;
   viewPreviousImage: () => void;
   viewNextImage: () => void;
+  updateImageDimensions: (width: number | null, height: number | null) => void;
+  resizeCurrentImage: () => Promise<void>;
 }
 
 export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
@@ -39,7 +43,9 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
     currentImageIndex: -1,
     messageHistory: [],
     isLoading: false,
-    error: null
+    error: null,
+    selectedWidth: null,
+    selectedHeight: null,
   });
 
   const uploadImage = useCallback(async (file: File) => {
@@ -73,7 +79,7 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
       const newUploadMessage: Message = {
         id: uuidv4(),
         content: `New image uploaded: ${file.name}. You can now describe how you want to stylize it.`,
-        sender: 'assistant', 
+        sender: 'assistant',
         timestamp: new Date()
       };
       
@@ -81,18 +87,18 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
         // Append the new original image to the end of the existing history
         const newHistory = [...prev.imageHistory, originalImageVersion];
         return {
-          ...prev,
+        ...prev,
           uploadedImageInfo: { // Update the primary uploaded info
-            file,
-            dataUrl,
-            fileName: file.name
-          },
+          file,
+          dataUrl,
+          fileName: file.name
+        },
           imageHistory: newHistory, // Append to existing history
           currentImageIndex: newHistory.length - 1, // Set index to the new image
           currentImageVersion: originalImageVersion, // Display the new image
           // Keep existing message history and add the new upload notification
           messageHistory: [...prev.messageHistory, newUploadMessage], 
-          isLoading: false
+        isLoading: false
         };
       });
     } catch (error) {
@@ -123,28 +129,27 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
         messageHistory: [...prev.messageHistory, userMessage]
       }));
       
-      // Get the source image - either original file or current version URL
+      // Get the source image 
       let imageSource: File | string;
-      
-      if (state.currentImageIndex === 0) {
-        // If we're at the original image (index 0), use the file
-        console.log('Using original uploaded image file for stylization');
+      if (state.currentImageIndex === 0 && state.uploadedImageInfo) {
         imageSource = state.uploadedImageInfo.file;
-      } else if (state.currentImageVersion && state.currentImageVersion.url) {
-        // Otherwise use the current image's URL
-        console.log('Using current image URL for stylization:', state.currentImageVersion.url);
+      } else if (state.currentImageVersion?.url) {
         imageSource = state.currentImageVersion.url;
-      } else {
-        // Fallback to original if something's wrong
-        console.log('Fallback to original image file');
+      } else if (state.uploadedImageInfo) { // Fallback safety
         imageSource = state.uploadedImageInfo.file;
+      } else {
+        throw new Error("No valid image source found for stylization.");
       }
       
-      // Process with AI using the current image
+      // Get current dimensions from state
+      const { selectedWidth, selectedHeight } = state;
+      
+      // Process with AI using the current image and dimensions
       const result = await stylizeImageService(
         imageSource,
         content,
-        null
+        selectedWidth ?? undefined,
+        selectedHeight ?? undefined
       );
 
       // Construct the full URL
@@ -169,7 +174,7 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
       // Update state with new data
       setState(prev => {
         // Append new version to the end of the full history
-        const newHistory = [...prev.imageHistory, newImageVersion]; 
+        const newHistory = [...prev.imageHistory, newImageVersion];
         return {
           ...prev,
           currentImageVersion: newImageVersion,
@@ -199,7 +204,7 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
         messageHistory: [...prev.messageHistory, errorMessage]
       }));
     }
-  }, [state.uploadedImageInfo, state.currentImageIndex, state.imageHistory]);
+  }, [state.uploadedImageInfo, state.currentImageIndex, state.currentImageVersion, state.selectedWidth, state.selectedHeight]);
 
   // Regenerate function
   const regenerateImage = useCallback(async () => {
@@ -211,24 +216,25 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      // Get the source image - use current image URL instead of original file
+      // Get the source image
       let imageSource: File | string;
-      
-      if (state.currentImageVersion && state.currentImageVersion.url) {
-        // Use the current image's URL
-        console.log('Using current image URL for regeneration:', state.currentImageVersion.url);
+      if (state.currentImageVersion?.url) {
         imageSource = state.currentImageVersion.url;
+      } else if (state.uploadedImageInfo) { // Fallback safety
+         imageSource = state.uploadedImageInfo.file;
       } else {
-        // Fallback to original if something's wrong
-        console.log('Fallback to original image file for regeneration');
-        imageSource = state.uploadedImageInfo.file;
+        throw new Error("No valid image source found for regeneration.");
       }
+
+      // Get current dimensions from state
+      const { selectedWidth, selectedHeight } = state;
       
-      // Process with AI using the current image and current prompt
+      // Process with AI using the current image, prompt, and dimensions
       const result = await stylizeImageService(
         imageSource,
         currentPrompt,
-        null
+        selectedWidth ?? undefined,
+        selectedHeight ?? undefined
       );
 
       // Construct the full URL
@@ -283,7 +289,7 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
         messageHistory: [...prev.messageHistory, errorMessage]
       }));
     }
-  }, [state.uploadedImageInfo, state.currentImageVersion, state.currentImageIndex, state.imageHistory]);
+  }, [state.uploadedImageInfo, state.currentImageVersion, state.currentImageIndex, state.selectedWidth, state.selectedHeight]);
 
   const downloadImage = useCallback(() => {
     if (!state.currentImageVersion) return;
@@ -305,12 +311,12 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
   const viewPreviousImage = useCallback(() => {
     setState(prev => {
       if (prev.currentImageIndex > 0) {
-        const newIndex = prev.currentImageIndex - 1;
-        return {
-          ...prev,
-          currentImageIndex: newIndex,
+      const newIndex = prev.currentImageIndex - 1;
+      return {
+        ...prev,
+        currentImageIndex: newIndex,
           currentImageVersion: prev.imageHistory[newIndex]
-        };
+      };
       }
       return prev;
     });
@@ -319,34 +325,115 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
   const viewNextImage = useCallback(() => {
     setState(prev => {
       if (prev.currentImageIndex < prev.imageHistory.length - 1) {
-        const newIndex = prev.currentImageIndex + 1;
-        return {
-          ...prev,
-          currentImageIndex: newIndex,
+      const newIndex = prev.currentImageIndex + 1;
+      return {
+        ...prev,
+        currentImageIndex: newIndex,
           currentImageVersion: prev.imageHistory[newIndex]
-        };
+      };
       }
       return prev;
     });
   }, []);
 
+  // Action to update dimensions
+  const updateImageDimensions = useCallback((width: number | null, height: number | null) => {
+    console.log('Updating dimensions to:', width, height);
+    setState(prev => ({ 
+      ...prev, 
+      selectedWidth: width,
+      selectedHeight: height
+    }));
+  }, []);
+
+  // Action to resize the current image
+  const resizeCurrentImage = useCallback(async () => {
+    if (!state.currentImageVersion || !state.currentImageVersion.url || !state.selectedWidth || !state.selectedHeight) {
+      console.error('Cannot resize: Missing current image or selected dimensions.');
+      setState(prev => ({ ...prev, error: 'Select target dimensions before resizing.' }));
+      return;
+    }
+
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    const { url: sourceUrl, prompt: sourcePrompt } = state.currentImageVersion;
+    const { selectedWidth, selectedHeight } = state;
+    
+    try {
+      const result = await resizeImageService(sourceUrl, selectedWidth, selectedHeight);
+      
+      // Construct the full URL for the new resized image
+      const fullResizedUrl = `${BACKEND_URL}${result.imageUrl}`;
+      
+      // Create a new image version for the resized image
+      const resizedImageVersion: ImageVersion = {
+        id: uuidv4(),
+        url: fullResizedUrl,
+        timestamp: new Date(),
+        prompt: sourcePrompt, // Keep the prompt from the original
+        feedback: `Resized from original state.` // Add note about resize
+      };
+      
+      // Add a message to chat history
+      const resizeMessage: Message = {
+        id: uuidv4(),
+        content: `Image resized to ${selectedWidth}x${selectedHeight}.`,
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+      
+      // Update state: Append resized image to history
+      setState(prev => {
+        const newHistory = [...prev.imageHistory, resizedImageVersion];
+        return {
+          ...prev,
+          currentImageVersion: resizedImageVersion,
+          imageHistory: newHistory,
+          currentImageIndex: newHistory.length - 1,
+          messageHistory: [...prev.messageHistory, resizeMessage],
+          isLoading: false
+        };
+      });
+
+    } catch (error) {
+      console.error('Error resizing image:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to resize image';
+      setState(prev => ({ ...prev, isLoading: false, error: errorMsg }));
+       // Add error message to chat
+       const errorMessage: Message = {
+        id: uuidv4(),
+        content: `Sorry, I encountered an error resizing the image: ${errorMsg}`,
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+      setState(prev => ({
+        ...prev,
+        messageHistory: [...prev.messageHistory, errorMessage]
+      }));
+    }
+  }, [state.currentImageVersion, state.selectedWidth, state.selectedHeight]);
+
   return [
-    { 
+    {
       uploadedImageInfo: state.uploadedImageInfo,
       currentImageVersion: state.currentImageVersion,
       imageHistory: state.imageHistory,
       currentImageIndex: state.currentImageIndex,
       messageHistory: state.messageHistory,
       isLoading: state.isLoading,
-      error: state.error
+      error: state.error,
+      selectedWidth: state.selectedWidth,
+      selectedHeight: state.selectedHeight
     },
-    { 
-      uploadImage, 
-      sendMessage, 
-      downloadImage, 
+    {
+      uploadImage,
+      sendMessage,
+      downloadImage,
       regenerateImage, 
-      viewPreviousImage, 
-      viewNextImage 
+      viewPreviousImage,
+      viewNextImage,
+      updateImageDimensions,
+      resizeCurrentImage
     }
   ];
 }; 

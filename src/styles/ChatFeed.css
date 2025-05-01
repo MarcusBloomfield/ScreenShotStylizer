@@ -3,6 +3,10 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
 }
 
 .messages-container {
@@ -109,7 +113,7 @@
 
 .chat-input-form textarea:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 20%, transparent);
 }
 
 .chat-input-form textarea::placeholder {
@@ -131,7 +135,11 @@
   transition: var(--transition);
 }
 
-.chat-input-form button:hover {
+.chat-input-form button svg {
+  stroke: white;
+}
+
+.chat-input-form button:hover:not(:disabled) {
   background-color: var(--primary-light);
   transform: translateY(-2px);
 }
@@ -140,10 +148,24 @@
   background-color: var(--gray-medium);
   cursor: not-allowed;
   transform: none;
+  opacity: 0.6;
 }
 
 .chat-input-form button.loading {
   padding: 0;
+}
+
+.generate-prompt-button {
+  background-color: var(--secondary-color) !important;
+}
+
+.generate-prompt-button:hover:not(:disabled) {
+   background-color: color-mix(in srgb, var(--secondary-color) 85%, black) !important;
+}
+
+.generate-prompt-button:disabled {
+   background-color: var(--gray-medium) !important;
+   opacity: 0.6;
 }
 
 @keyframes fadeIn {

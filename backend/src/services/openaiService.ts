@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { UploadedFile } from 'express-fileupload';
 import axios from 'axios';
+import mime from 'mime-types';
 // No longer need sharp for this approach
 // import sharp from 'sharp';
 
@@ -105,7 +106,7 @@ export const stylizeImageWithAI = async (
     const imageResponse = await openai.images.edit({
       model: "gpt-image-1",
       image: imageForApi,
-      prompt: `Transform this image in the style of ${stylePrompt}. Maintain the core subject matter and composition.`
+      prompt: `Transform this image in the style of ${stylePrompt}. Make sure it is not stretched or distorted.`
     });
 
     console.log('Received response from GPT Image edit API');
@@ -220,6 +221,127 @@ export const generateLogoWithAI = async (
     };
   } catch (error) {
     console.error('Error in generateLogoWithAI:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate a detailed image prompt using OpenAI based on user input and optionally an image
+ */
+export const generateImagePromptWithAI = async (
+  userInput: string,
+  imageSource?: string // Optional URL or base64 string of the current image
+): Promise<{ generatedPrompt: string }> => {
+  try {
+    console.log(`Generating image prompt based on input: "${userInput}" and potentially an image.`);
+
+    // Construct the prompt messages for the chat model
+    const systemMessage = `You are an AI assistant skilled at creating detailed, descriptive prompts for image generation models like DALL-E or Midjourney. Based on the user's simple input and potentially an accompanying image, generate a richer prompt that includes details about the subject, style, lighting, composition, and mood, incorporating relevant details observed from the image if provided. The prompt should be a single block of text.`;
+    
+    // Prepare the user message content array
+    const userMessageContent: Array<OpenAI.Chat.Completions.ChatCompletionContentPart> = [
+      {
+        type: "text",
+        text: `Generate a prompt based on this idea: "${userInput}". ${imageSource ? 'Use the provided image as visual context.' : ''}`
+      }
+    ];
+
+    // Add image if provided
+    if (imageSource) {
+      let imageInputUrl = imageSource; // Default to the provided source
+
+      // Check if the imageSource is a local URL that needs converting
+      if (imageSource.startsWith('http://localhost:') || imageSource.startsWith('/uploads/images/')) {
+        console.log('Local image URL detected, converting to base64 data URL.');
+        let localPath = '';
+        try {
+          // Construct the full local path to the image file
+          if (imageSource.startsWith('http://localhost:')) {
+            // Extract path after port number e.g., /uploads/images/file.png
+            const urlPath = new URL(imageSource).pathname;
+            // Assuming the backend server root matches the project root where /uploads is
+            localPath = path.join(__dirname, '..', '..', urlPath);
+          } else {
+            // Assuming relative path from project root
+            localPath = path.join(__dirname, '..', '..', imageSource);
+          }
+          
+          console.log(`Attempting to read local image file from: ${localPath}`);
+
+          // Check if file exists
+          if (!fs.existsSync(localPath)) {
+            console.error(`Local image file not found at: ${localPath}`);
+            throw new Error(`Local image file not found: ${imageSource}`);
+          }
+
+          // Read the file and convert to base64
+          const imageBuffer = fs.readFileSync(localPath);
+          const base64Image = imageBuffer.toString('base64');
+          const mimeType = mime.lookup(localPath) || 'image/png'; // Get MIME type or default
+          imageInputUrl = `data:${mimeType};base64,${base64Image}`;
+          console.log(`Converted local image to base64 data URL (type: ${mimeType}, length: ${imageInputUrl.length})`);
+
+        } catch (fileError: any) {
+          console.error(`Failed to read or convert local image file ${localPath}:`, fileError);
+          // Don't throw here, maybe log and proceed without image? Or rethrow?
+          // For now, let's log and proceed without the image context for prompt gen
+          imageInputUrl = ''; // Clear the URL so it doesn't get added below
+          // Assert that the first element is a text part before accessing .text
+          const textPart = userMessageContent[0] as OpenAI.Chat.Completions.ChatCompletionContentPartText;
+          textPart.text = `Generate a detailed image generation prompt based on this idea: "${userInput}". (Note: Could not load provided image context).`;
+        }
+      }
+
+      // Ensure the image source is a valid URL (data URLs or public http(s) URLs)
+      if (imageInputUrl.startsWith('data:image') || imageInputUrl.startsWith('https://')) {
+         console.log('Adding image context to prompt generation:', imageInputUrl.substring(0, 60) + '...');
+         userMessageContent.push({
+          type: "image_url",
+          image_url: { 
+            url: imageInputUrl, 
+            detail: "low"
+          }
+        });
+      } else if (imageInputUrl.startsWith('http://') && !imageInputUrl.startsWith('http://localhost')) {
+        // Allow non-localhost http URLs (might work, might not, depends on OpenAI policy/reachability)
+        console.log('Adding potentially public HTTP image context:', imageInputUrl);
+         userMessageContent.push({
+          type: "image_url",
+          image_url: { 
+            url: imageInputUrl, 
+            detail: "low"
+          }
+        });
+      } else if (imageInputUrl) { // Only warn if we had an imageInputUrl but it wasn't valid/handled
+        console.warn(`Invalid or local HTTP image source format provided: ${imageSource.substring(0, 60)}... Needs HTTPS URL or data URL, or failed local conversion.`);
+      }
+    }
+
+    console.log('Calling OpenAI chat completion API (gpt-4o-mini) for prompt generation with context');
+    const chatResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini", 
+      messages: [
+        { role: "system", content: systemMessage },
+        { role: "user", content: userMessageContent } // Send combined text/image content
+      ],
+      max_tokens: 150, 
+      temperature: 0.7
+    });
+
+    const generatedPrompt = chatResponse.choices[0]?.message?.content?.trim();
+
+    if (!generatedPrompt) {
+      console.error('No prompt generated by the AI.');
+      throw new Error('Failed to generate image prompt.');
+    }
+
+    console.log('Successfully generated image prompt:', generatedPrompt);
+    return {
+      generatedPrompt
+    };
+
+  } catch (error) {
+    console.error('Error in generateImagePromptWithAI:', error);
     throw error;
   }
 }; 
