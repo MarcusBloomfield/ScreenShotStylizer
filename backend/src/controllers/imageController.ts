@@ -115,7 +115,7 @@ const resizeAndSaveImage = async (
   try {
     const resizedBuffer = await sharp(imageBuffer)
       .resize(targetWidth, targetHeight, {
-        fit: 'contain', // Fill dimensions, preserve aspect ratio, crop excess
+        fit: 'fill', // Fill dimensions, preserve aspect ratio, crop excess
         background: { r: 255, g: 255, b: 255, alpha: 0 }, // Add white background
         position: 'center', // Center the image
         kernel: 'lanczos3' // Use Lanczos3 for better quality

@@ -105,8 +105,8 @@ export const stylizeImageWithAI = async (
     const imageResponse = await openai.images.edit({
       model: "gpt-image-1",
       image: imageForApi,
-      prompt: `Transform this image in the style of ${stylePrompt}. Make sure it is not stretched or distorted.`,
-      size: "1024x1024" // Ensure output is 1024x1024
+      prompt: `${stylePrompt}. Make ONLY the specific changes mentioned in the prompt while meticulously preserving the original content, proportions, layout, composition, and style. Apply minimal edits - the result should look nearly identical to the original except for the requested changes. Maintain the highest quality of the original image, avoiding any stretching or distortion.`,
+      quality: "high"
     });
 
     console.log('Received response from GPT Image edit API');
@@ -236,7 +236,7 @@ export const generateImagePromptWithAI = async (
     console.log(`Generating image prompt based on input: "${userInput}" and potentially an image.`);
 
     // Construct the prompt messages for the chat model
-    const systemMessage = `You are an AI assistant skilled at creating detailed, descriptive prompts for image generation models like DALL-E or Midjourney. Based on the user's simple input and potentially an accompanying image, generate a richer prompt that includes details about the subject, style, lighting, composition, and mood, incorporating relevant details observed from the image if provided. The prompt should be a single block of text.`;
+    const systemMessage = `You are an AI assistant skilled at creating detailed, descriptive prompts for image generation models like DALL-E or Midjourney. Based on the user's simple input and potentially an accompanying image, generate a richer prompt that includes details about the subject, style, lighting, composition, and mood, incorporating relevant details observed from the image if provided. The prompt should be a single block of text. MAX 100 WORDS.`;
     
     // Prepare the user message content array
     const userMessageContent: Array<OpenAI.Chat.Completions.ChatCompletionContentPart> = [
