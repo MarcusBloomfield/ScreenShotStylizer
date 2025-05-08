@@ -62,7 +62,7 @@ This will start both the React frontend and Node.js backend concurrently.
 
 ## License
 
-This project is licensed under the ISC License.
+This project is licensed under the MIT License.
 
 ## Acknowledgments
 
