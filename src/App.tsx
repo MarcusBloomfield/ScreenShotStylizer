@@ -90,10 +90,6 @@ const App: React.FC = () => {
   return (
     <div className={`app ${isDarkMode ? 'dark-mode' : ''}`}>
       <header className="app-header">
-        <div className="header-content">
-          <h1>ScreenShot Stylizer</h1>
-          <p>Upload an image and chat to stylize it using AI</p>
-        </div>
         {/* Dark Mode Toggle Button */}
         <button onClick={toggleDarkMode} className="theme-toggle-button" title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
           {isDarkMode ? (

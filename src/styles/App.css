@@ -59,14 +59,9 @@ body {
 }
 
 .app-header {
-  padding: 1.5rem;
   display: flex; /* Use flexbox for alignment */
   justify-content: space-between; /* Space out title and button */
   align-items: center; /* Vertically align items */
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--card-background);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: var(--transition); /* Add transition */
 }
 
 .header-content {
@@ -112,7 +107,6 @@ body {
 
 .app-main {
   flex: 1;
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -219,10 +213,6 @@ body {
 
 @media (max-width: 576px) {
   .app-header {
-    padding: 1rem;
-  }
-  
-  .app-main {
     padding: 1rem;
   }
   
