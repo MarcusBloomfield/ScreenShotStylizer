@@ -11,5 +11,4 @@ export interface ImageVersion {
   url: string;
   timestamp: Date;
   prompt?: string;
-  feedback?: string;
 } 

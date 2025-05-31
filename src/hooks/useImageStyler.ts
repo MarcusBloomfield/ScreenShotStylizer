@@ -15,11 +15,15 @@ interface ImageFile {
 interface ImageStylerState {
   uploadedImageInfo: ImageFile | null;
   currentImageVersion: ImageVersion | null;
-  imageHistory: ImageVersion[];
   currentImageIndex: number;
   messageHistory: Message[];
   isLoading: boolean;
   error: string | null;
+}
+
+// Internal state that includes imageHistory for navigation
+interface InternalImageStylerState extends ImageStylerState {
+  imageHistory: ImageVersion[];
 }
 
 interface ImageStylerActions {
@@ -32,7 +36,7 @@ interface ImageStylerActions {
 }
 
 export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
-  const [state, setState] = useState<ImageStylerState>({
+  const [state, setState] = useState<InternalImageStylerState>({
     uploadedImageInfo: null,
     currentImageVersion: null,
     imageHistory: [],
@@ -326,7 +330,6 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
     {
       uploadedImageInfo: state.uploadedImageInfo,
       currentImageVersion: state.currentImageVersion,
-      imageHistory: state.imageHistory,
       currentImageIndex: state.currentImageIndex,
       messageHistory: state.messageHistory,
       isLoading: state.isLoading,

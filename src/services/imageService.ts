@@ -56,19 +56,3 @@ export const stylizeImageService = async (
   return response.data;
   }
 };
-
-
-export const generatePromptService = async (
-  inputText: string,
-  imageUrl?: string // Optional URL of the current image
-): Promise<PromptResponse> => {
-  console.log('Calling generate prompt service with input:', inputText, 'and image:', imageUrl);
-  const payload: { inputText: string; imageData?: string } = { inputText };
-  if (imageUrl) {
-    payload.imageData = imageUrl;
-  }
-  
-  const response = await axios.post<PromptResponse>(`${API_URL}/openai/generate-prompt`, payload);
-  console.log('Received generated prompt:', response.data);
-  return response.data;
-};
