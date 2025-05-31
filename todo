@@ -1,5 +1,0 @@
-- remove fill empty space and replace with eraser and fill empty space 
-- fix regenerate to make it regen last image generated from and prompt
-- fix outputsize bullshit
-- maybe add image expanded
-- maybe add image upscaler

@@ -3,8 +3,6 @@ import './styles/App.css';
 import ImageUploader from './components/ImageUploader';
 import ChatFeed from './components/ChatFeed';
 import ImageDisplay from './components/ImageDisplay';
-import PropertiesPanel from './components/PropertiesPanel';
-import { Message } from './models/Message';
 import { useImageStyler } from './hooks/useImageStyler';
 
 const App: React.FC = () => {
@@ -16,8 +14,6 @@ const App: React.FC = () => {
       messageHistory, 
       isLoading, 
       error,
-      selectedWidth,
-      selectedHeight
     },
     { 
       uploadImage: originalUploadImage,
@@ -26,9 +22,6 @@ const App: React.FC = () => {
       regenerateImage, 
       viewPreviousImage, 
       viewNextImage, 
-      updateImageDimensions,
-      resizeCurrentImage,
-      fillEmptySpace
     }
   ] = useImageStyler();
 
@@ -150,14 +143,6 @@ const App: React.FC = () => {
                   currentImageIndex={currentImageIndex}
                 />
               </div>
-              <PropertiesPanel 
-                selectedWidth={selectedWidth}
-                selectedHeight={selectedHeight}
-                onDimensionsChange={updateImageDimensions}
-                onResizeNow={resizeCurrentImage}
-                onFillEmptySpace={fillEmptySpace}
-                isLoading={isLoading}
-              />
             </div>
           </div>
         )}

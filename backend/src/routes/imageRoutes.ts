@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadImage, stylizeImage, generateLogo, resizeImageController } from '../controllers/imageController';
+import { uploadImage, stylizeImage} from '../controllers/imageController';
 
 const router = express.Router();
 
@@ -16,19 +16,5 @@ router.post('/upload', uploadImage);
  * @access  Public
  */
 router.post('/stylize', stylizeImage);
-
-/**
- * @route   POST /api/images/generate-logo
- * @desc    Generate a logo using OpenAI
- * @access  Public
- */
-router.post('/generate-logo', generateLogo);
-
-/**
- * @route   POST /api/images/resize
- * @desc    Resize an image
- * @access  Public
- */
-router.post('/resize', resizeImageController);
 
 export default router; 

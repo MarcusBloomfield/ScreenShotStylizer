@@ -8,7 +8,6 @@ import fileUpload from 'express-fileupload';
 
 // Routes
 import imageRoutes from './routes/imageRoutes';
-import openaiRoutes from './routes/openaiRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -72,7 +71,6 @@ console.log(`Serving static image files from: ${imagesDir} at /uploads/images`);
 
 // Routes
 app.use('/api/images', imageRoutes);
-app.use('/api/openai', openaiRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

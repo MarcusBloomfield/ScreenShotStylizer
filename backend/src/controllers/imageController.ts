@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { UploadedFile } from 'express-fileupload';
 import axios from 'axios';
 import sharp from 'sharp';
-import { stylizeImageWithAI, generateLogoWithAI } from '../services/openaiService';
+import { stylizeImageWithAI } from '../services/openaiService';
 
 // Define absolute paths for directories - fix the double backend path issue
 const basePath = process.cwd();
@@ -98,47 +98,6 @@ export const uploadImage = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Helper function to resize and save an image buffer
- */
-const resizeAndSaveImage = async (
-  imageBuffer: Buffer,
-  targetWidth: number,
-  targetHeight: number
-): Promise<string> => {
-  const imageId = uuidv4();
-  const fileName = `${imageId}.png`;
-  const filePath = path.join(imagesDir, fileName);
-
-  console.log(`Helper - Resizing image to ${targetWidth}x${targetHeight} using 'cover' and saving to: ${filePath}`);
-  
-  try {
-    const resizedBuffer = await sharp(imageBuffer)
-      .resize(targetWidth, targetHeight, {
-        fit: 'fill', // Fill dimensions, preserve aspect ratio, crop excess
-        background: { r: 255, g: 255, b: 255, alpha: 0 }, // Add white background
-        position: 'center', // Center the image
-        kernel: 'lanczos3' // Use Lanczos3 for better quality
-        
-      })
-      .png() // Ensure output is PNG
-      .toBuffer();
-
-    fs.writeFileSync(filePath, resizedBuffer);
-
-    if (fs.existsSync(filePath)) {
-      console.log('Helper - File saved successfully at:', filePath);
-    } else {
-      console.error('Helper - File was not saved at:', filePath);
-      throw new Error('Failed to save resized image');
-    }
-
-    return `/uploads/images/${fileName}`; // Return relative URL
-  } catch (error) {
-     console.error('Helper - Error resizing/saving image:', error);
-     throw error;
-  }
-};
 
 /**
  * Process and save image from OpenAI (handles base64 or URL), potentially resizing.
@@ -244,87 +203,3 @@ export const stylizeImage = async (req: Request, res: Response) => {
     });
   }
 };
-
-/**
- * Generate a logo with OpenAI
- */
-export const generateLogo = async (req: Request, res: Response) => {
-  try {
-    const { prompt, style } = req.body;
-
-    if (!prompt) {
-      return res.status(400).json({ message: 'No prompt was provided' });
-    }
-
-    // Generate logo with OpenAI
-    const result = await generateLogoWithAI(prompt, style || 'modern');
-    
-    // Save the resulting image (handles both URL and base64)
-    const imageUrl = await saveImageFromResult(result.imageBase64);
-
-    console.log('ImageController - Logo URL to return:', imageUrl);
-
-    // Return the processed image data
-    res.status(200).json({
-      imageUrl,
-      explanation: result.explanation
-    });
-
-  } catch (error) {
-    console.error('Error generating logo:', error);
-    res.status(500).json({ 
-      message: 'Error generating logo',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
-
-/**
- * Resize an existing image provided via URL or base64
- */
-export const resizeImageController = async (req: Request, res: Response) => {
-  try {
-    const { imageData, targetWidth, targetHeight } = req.body;
-
-    // Validate input
-    if (!imageData || !targetWidth || !targetHeight) {
-      return res.status(400).json({ message: 'Missing imageData, targetWidth, or targetHeight' });
-    }
-    if (isNaN(parseInt(targetWidth, 10)) || isNaN(parseInt(targetHeight, 10))) {
-       return res.status(400).json({ message: 'Invalid targetWidth or targetHeight' });
-    }
-
-    const width = parseInt(targetWidth, 10);
-    const height = parseInt(targetHeight, 10);
-
-    console.log(`ResizeController - Received request to resize to ${width}x${height}`);
-
-    // Get image buffer from source
-    let sourceBuffer: Buffer;
-    if (imageData.startsWith('http')) {
-      console.log('ResizeController - Downloading image from URL...');
-      const response = await axios.get(imageData, { responseType: 'arraybuffer' });
-      sourceBuffer = Buffer.from(response.data);
-    } else if (imageData.startsWith('data:image')) {
-      console.log('ResizeController - Decoding base64 image...');
-      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-      sourceBuffer = Buffer.from(base64Data, 'base64');
-    } else {
-      return res.status(400).json({ message: 'Invalid imageData format (must be URL or base64 data URI)' });
-    }
-
-    // Resize and save using the helper
-    const resizedImageUrl = await resizeAndSaveImage(sourceBuffer, width, height);
-
-    console.log('ResizeController - Resized image URL to return:', resizedImageUrl);
-
-    res.status(200).json({ imageUrl: resizedImageUrl });
-
-  } catch (error) {
-    console.error('Error in resizeImageController:', error);
-    res.status(500).json({ 
-      message: 'Error resizing image',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-}; 

@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Message, ImageVersion } from '../models/Message';
-import { uploadImageService, stylizeImageService, resizeImageService, fillEmptySpaceService } from '../services/imageService';
+import { uploadImageService, stylizeImageService} from '../services/imageService';
 
 // Define the backend URL (ideally from an environment variable)
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 interface ImageFile {
   file: File;
@@ -20,8 +20,6 @@ interface ImageStylerState {
   messageHistory: Message[];
   isLoading: boolean;
   error: string | null;
-  selectedWidth: number | null;
-  selectedHeight: number | null;
 }
 
 interface ImageStylerActions {
@@ -31,9 +29,6 @@ interface ImageStylerActions {
   regenerateImage: () => Promise<void>;
   viewPreviousImage: () => void;
   viewNextImage: () => void;
-  updateImageDimensions: (width: number | null, height: number | null) => void;
-  resizeCurrentImage: () => Promise<void>;
-  fillEmptySpace: (fillPrompt: string) => Promise<void>;
 }
 
 export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
@@ -45,8 +40,6 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
     messageHistory: [],
     isLoading: false,
     error: null,
-    selectedWidth: null,
-    selectedHeight: null,
   });
 
   const uploadImage = useCallback(async (file: File) => {
@@ -142,15 +135,11 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
         throw new Error("No valid image source found for stylization.");
       }
       
-      // Get current dimensions from state
-      const { selectedWidth, selectedHeight } = state;
       
       // Process with AI using the current image and dimensions
       const result = await stylizeImageService(
         imageSource,
         content,
-        selectedWidth ?? undefined,
-        selectedHeight ?? undefined
       );
 
       // Construct the full URL
@@ -205,7 +194,7 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
         messageHistory: [...prev.messageHistory, errorMessage]
       }));
     }
-  }, [state.uploadedImageInfo, state.currentImageIndex, state.currentImageVersion, state.selectedWidth, state.selectedHeight]);
+  }, [state.uploadedImageInfo, state.currentImageIndex, state.currentImageVersion]);
 
   // Regenerate function
   const regenerateImage = useCallback(async () => {
@@ -227,15 +216,11 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
         throw new Error("No valid image source found for regeneration.");
       }
 
-      // Get current dimensions from state
-      const { selectedWidth, selectedHeight } = state;
       
       // Process with AI using the current image, prompt, and dimensions
       const result = await stylizeImageService(
         imageSource,
-        currentPrompt,
-        selectedWidth ?? undefined,
-        selectedHeight ?? undefined
+        currentPrompt
       );
 
       // Construct the full URL
@@ -290,7 +275,7 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
         messageHistory: [...prev.messageHistory, errorMessage]
       }));
     }
-  }, [state.uploadedImageInfo, state.currentImageVersion, state.currentImageIndex, state.selectedWidth, state.selectedHeight]);
+  }, [state.uploadedImageInfo, state.currentImageVersion, state.currentImageIndex]);
 
   const downloadImage = useCallback(() => {
     if (!state.currentImageVersion) return;
@@ -337,147 +322,6 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
     });
   }, []);
 
-  // Action to update dimensions
-  const updateImageDimensions = useCallback((width: number | null, height: number | null) => {
-    console.log('Updating dimensions to:', width, height);
-    setState(prev => ({ 
-      ...prev, 
-      selectedWidth: width,
-      selectedHeight: height
-    }));
-  }, []);
-
-  // Action to resize the current image
-  const resizeCurrentImage = useCallback(async () => {
-    if (!state.currentImageVersion || !state.currentImageVersion.url || !state.selectedWidth || !state.selectedHeight) {
-      console.error('Cannot resize: Missing current image or selected dimensions.');
-      setState(prev => ({ ...prev, error: 'Select target dimensions before resizing.' }));
-      return;
-    }
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-    const { url: sourceUrl, prompt: sourcePrompt } = state.currentImageVersion;
-    const { selectedWidth, selectedHeight } = state;
-    
-    try {
-      const result = await resizeImageService(sourceUrl, selectedWidth, selectedHeight);
-      
-      // Construct the full URL for the new resized image
-      const fullResizedUrl = `${BACKEND_URL}${result.imageUrl}`;
-      
-      // Create a new image version for the resized image
-      const resizedImageVersion: ImageVersion = {
-        id: uuidv4(),
-        url: fullResizedUrl,
-        timestamp: new Date(),
-        prompt: sourcePrompt, // Keep the prompt from the original
-        feedback: `Resized from original state.` // Add note about resize
-      };
-      
-      // Add a message to chat history
-      const resizeMessage: Message = {
-        id: uuidv4(),
-        content: `Image resized to ${selectedWidth}x${selectedHeight}.`,
-        sender: 'assistant',
-        timestamp: new Date()
-      };
-      
-      // Update state: Append resized image to history
-      setState(prev => {
-        const newHistory = [...prev.imageHistory, resizedImageVersion];
-        return {
-          ...prev,
-          currentImageVersion: resizedImageVersion,
-          imageHistory: newHistory,
-          currentImageIndex: newHistory.length - 1,
-          messageHistory: [...prev.messageHistory, resizeMessage],
-          isLoading: false
-        };
-      });
-
-    } catch (error) {
-      console.error('Error resizing image:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Failed to resize image';
-      setState(prev => ({ ...prev, isLoading: false, error: errorMsg }));
-       // Add error message to chat
-       const errorMessage: Message = {
-        id: uuidv4(),
-        content: `Sorry, I encountered an error resizing the image: ${errorMsg}`,
-        sender: 'assistant',
-        timestamp: new Date()
-      };
-      setState(prev => ({
-        ...prev,
-        messageHistory: [...prev.messageHistory, errorMessage]
-      }));
-    }
-  }, [state.currentImageVersion, state.selectedWidth, state.selectedHeight]);
-
-  // Add after other action functions
-  const fillEmptySpace = useCallback(async (fillPrompt: string) => {
-    if (!state.currentImageVersion) return;
-    
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
-    try {
-      // Get the current image
-      const imageSource = state.currentImageVersion.url;
-      
-      // Process with AI to fill empty space
-      const result = await fillEmptySpaceService(imageSource, fillPrompt);
-      
-      // Create a new image version from the result
-      const newImageVersion: ImageVersion = {
-        id: uuidv4(),
-        url: result.imageBase64, // Direct base64 data URL
-        timestamp: new Date(),
-        prompt: `Fill empty space: ${fillPrompt}`
-      };
-      
-      // Create assistant response message
-      const assistantMessage: Message = {
-        id: uuidv4(),
-        content: result.explanation || "I've filled the empty space in your image based on your request.",
-        sender: 'assistant',
-        timestamp: new Date()
-      };
-      
-      // Update state with new data
-      setState(prev => {
-        // Append new version to the end of the full history
-        const newHistory = [...prev.imageHistory, newImageVersion];
-        return {
-          ...prev,
-          currentImageVersion: newImageVersion,
-          imageHistory: newHistory,
-          currentImageIndex: newHistory.length - 1, // Point to the newest image
-          messageHistory: [...prev.messageHistory, assistantMessage],
-          isLoading: false
-        };
-      });
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to fill empty space'
-      }));
-      
-      // Add error message
-      const errorMessage: Message = {
-        id: uuidv4(),
-        content: "Sorry, I encountered an error filling the empty space. The image may not have any transparent areas.",
-        sender: 'assistant',
-        timestamp: new Date()
-      };
-      
-      setState(prev => ({
-        ...prev,
-        messageHistory: [...prev.messageHistory, errorMessage]
-      }));
-    }
-  }, [state.currentImageVersion]);
-
   return [
     {
       uploadedImageInfo: state.uploadedImageInfo,
@@ -487,8 +331,6 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
       messageHistory: state.messageHistory,
       isLoading: state.isLoading,
       error: state.error,
-      selectedWidth: state.selectedWidth,
-      selectedHeight: state.selectedHeight
     },
     {
       uploadImage,
@@ -497,9 +339,6 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
       regenerateImage, 
       viewPreviousImage,
       viewNextImage,
-      updateImageDimensions,
-      resizeCurrentImage,
-      fillEmptySpace
     }
   ];
 }; 

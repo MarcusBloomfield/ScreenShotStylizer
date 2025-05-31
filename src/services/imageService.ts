@@ -11,15 +11,6 @@ interface PromptResponse {
   generatedPrompt: string;
 }
 
-interface ResizeResponse {
-  imageUrl: string; // URL of the newly resized image
-}
-
-interface FillEmptySpaceResponse {
-  imageBase64: string; 
-  explanation: string;
-}
-
 export const uploadImageService = async (file: File): Promise<{ imageId: string }> => {
   const formData = new FormData();
   formData.append('image', file);
@@ -66,17 +57,6 @@ export const stylizeImageService = async (
   }
 };
 
-export const generateLogoService = async (
-  prompt: string,
-  style: string
-): Promise<StyleResponse> => {
-  const response = await axios.post<StyleResponse>(`${API_URL}/images/generate-logo`, {
-    prompt,
-    style
-  });
-
-  return response.data;
-};
 
 export const generatePromptService = async (
   inputText: string,
@@ -92,34 +72,3 @@ export const generatePromptService = async (
   console.log('Received generated prompt:', response.data);
   return response.data;
 };
-
-export const resizeImageService = async (
-  imageUrl: string, // URL or base64 of the image to resize
-  targetWidth: number,
-  targetHeight: number
-): Promise<ResizeResponse> => {
-  console.log(`Calling resize service for image: ${imageUrl.substring(0,50)}... to ${targetWidth}x${targetHeight}`);
-  const response = await axios.post<ResizeResponse>(`${API_URL}/images/resize`, {
-    imageData: imageUrl, 
-    targetWidth,
-    targetHeight
-  });
-  console.log('Received resized image URL:', response.data.imageUrl);
-  return response.data;
-};
-
-export const fillEmptySpaceService = async (
-  imageUrl: string, // URL or base64 of the image 
-  fillPrompt: string
-): Promise<FillEmptySpaceResponse> => {
-  console.log(`Calling fill empty space service for image with prompt: "${fillPrompt}"`);
-  const response = await axios.post<FillEmptySpaceResponse>(`${API_URL}/openai/fill-empty-space`, {
-    imageData: imageUrl,
-    fillPrompt
-  });
-  console.log('Received filled image');
-  return {
-    imageBase64: response.data.imageBase64,
-    explanation: response.data.explanation
-  };
-}; 

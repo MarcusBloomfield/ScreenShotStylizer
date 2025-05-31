@@ -125,3 +125,8 @@ yarn.lock
 # Backend uploads
 backend/uploads/
 backend/.env 
+
+#Documents
+backend/docs/
+project.md
+project.txt

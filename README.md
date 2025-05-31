@@ -14,7 +14,7 @@ An AI-powered image stylizer built with React, TypeScript, and OpenAI API.
 
 - **Frontend**: React, TypeScript, CSS
 - **Backend**: Node.js, Express
-- **AI Integration**: OpenAI API (DALL-E 3 and GPT-4 Vision)
+- **AI Integration**: OpenAI API (GPT-4 Vision)
 - **File Processing**: Express FileUpload
 
 ## Getting Started
