@@ -281,21 +281,56 @@ export const useImageStyler = (): [ImageStylerState, ImageStylerActions] => {
     }
   }, [state.uploadedImageInfo, state.currentImageVersion, state.currentImageIndex]);
 
-  const downloadImage = useCallback(() => {
+  const downloadImage = useCallback(async () => {
     if (!state.currentImageVersion) return;
     
-    const a = document.createElement('a');
-    a.href = state.currentImageVersion.url;
-    
-    const promptPart = state.currentImageVersion.prompt 
-      ? state.currentImageVersion.prompt.replace(/\\s+/g, '_').substring(0, 30)
-      : 'original';
-    const timestamp = state.currentImageVersion.timestamp.getTime();
-    a.download = `stylized_${promptPart}_${timestamp}.png`; 
-    
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+      let blob: Blob;
+      
+      // Handle data URLs (original uploaded images)
+      if (state.currentImageVersion.url.startsWith('data:')) {
+        // Convert data URL to blob
+        const response = await fetch(state.currentImageVersion.url);
+        blob = await response.blob();
+      } else {
+        // Handle remote URLs (stylized images from backend)
+        const response = await fetch(state.currentImageVersion.url);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.statusText}`);
+        }
+        blob = await response.blob();
+      }
+      
+      // Create object URL from blob
+      const objectUrl = URL.createObjectURL(blob);
+      
+      // Create download link
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      
+      const promptPart = state.currentImageVersion.prompt 
+        ? state.currentImageVersion.prompt.replace(/\s+/g, '_').substring(0, 30)
+        : 'original';
+      const timestamp = state.currentImageVersion.timestamp.getTime();
+      a.download = `stylized_${promptPart}_${timestamp}.png`; 
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Clean up the object URL
+      URL.revokeObjectURL(objectUrl);
+      
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      // Fallback to the original method if fetch fails
+      const a = document.createElement('a');
+      a.href = state.currentImageVersion.url;
+      a.target = '_blank'; // Open in new tab as fallback
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   }, [state.currentImageVersion]);
 
   const viewPreviousImage = useCallback(() => {
